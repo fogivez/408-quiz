@@ -115,6 +115,24 @@
   .welcome-author { margin: 0 0 6px; font-size: 1.24rem; font-weight: 700; color: #0f172a; }
   .welcome-msg { margin: 0 0 8px; font-size: 1.02rem; font-weight: 500; color: #1e293b; }
   .welcome-sub { margin: 0 0 18px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+  .rank-hero { background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%); border: 1px solid #bfdbfe; border-radius: 16px; padding: 16px 18px; margin-bottom: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+  .rank-formula { background: var(--surface); border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px 14px; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.55; }
+  .rank-item { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; box-shadow: var(--shadow); }
+  .rank-item.me { border: 2px solid var(--primary); background: #f8fbff; }
+  .rank-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+  .rank-pos { width: 34px; height: 34px; border-radius: 10px; background: var(--surface-3); color: var(--text-muted); font-weight: 700; font-size: 0.92rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .rank-pos.top1 { background: #fef3c7; color: #b45309; font-size: 1.15rem; }
+  .rank-pos.top2 { background: #e2e8f0; color: #334155; font-size: 1.15rem; }
+  .rank-pos.top3 { background: #ffedd5; color: #c2410c; font-size: 1.15rem; }
+  .rank-meta { min-width: 0; }
+  .rank-name { font-weight: 700; font-size: 0.96rem; color: #0f172a; word-break: break-all; }
+  .rank-school { display: inline-block; font-size: 0.74rem; color: var(--indigo); background: var(--indigo-soft); padding: 1px 8px; border-radius: 999px; margin-top: 3px; }
+  .rank-right { text-align: right; flex-shrink: 0; }
+  .rank-power { font-size: 1.15rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+  .rank-sub { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .field-grp { text-align: left; margin-bottom: 12px; }
+  .field-grp label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+  .field-grp input { width: 100%; padding: 9px 12px; font-size: 0.92rem; }
   @media (max-width: 640px) {
     .container { padding: 10px 10px 76px; }
     header { padding: 14px 14px; border-radius: 14px; margin-bottom: 12px; }
@@ -164,6 +182,7 @@
         <p>精选高频真题 + 130道带图读图题 + 多行代码高亮排版 + 自动记忆与错题本导出</p>
       </div>
       <div class="header-actions" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+        <button id="profileBtn" class="btn" onclick="openProfileModal()" style="border-color:var(--primary);color:var(--primary);font-weight:600;">👤 创建用户上榜</button>
         <button class="btn" onclick="exportArchive()">💾 导出学习存档</button>
         <button class="btn" onclick="document.getElementById('importFile').click()">📂 导入存档</button>
         <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importArchive(event)" />
@@ -181,11 +200,24 @@
 
   <div class="tabs">
     <button class="tab-btn active" data-tab="quiz" onclick="switchTab('quiz')">🎯 真题与刷题 (577)</button>
+    <button class="tab-btn" data-tab="rank" onclick="switchTab('rank')">🏆 战力排行榜</button>
     <button class="tab-btn" data-tab="knowledge" onclick="switchTab('knowledge')">📚 知识点库 (36)</button>
     <button class="tab-btn" data-tab="cross" onclick="switchTab('cross')">🔗 计组×OS 串联</button>
     <button class="tab-btn" data-tab="tools" onclick="switchTab('tools')">🧭 方法论与图解</button>
   </div>
 
+  <section id="panel-rank" class="panel">
+    <div id="myRankCard" class="rank-hero"></div>
+    <div class="rank-formula">
+      <strong>📐 公平战力分公式：</strong><code>战力分 = 贝叶斯平滑正确率((对+3)/(总+10)) × 100 × 题量系数(0.25 + 0.75×min(1, 总/120)) + 已掌握模块数 × 1.2</code>
+      <div style="margin-top:3px;font-size:0.76rem;">兼顾真实正确率与刷题量：防止“只做1题蒙对100%”或“闭眼乱点500题”霸榜，同分按正确率高者优先。</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+      <span id="rankStatusText" style="font-size:0.84rem;color:var(--text-muted);">实时同步自 Cloudflare D1 云端排行榜</span>
+      <button class="btn" onclick="refreshRankNow()">🔄 刷新榜单</button>
+    </div>
+    <div id="rankListContainer"></div>
+  </section>
   <section id="panel-knowledge" class="panel">
     <div class="toolbar">
       <input type="text" id="kpSearch" class="search-input" placeholder="检索全部 4 科考点：如 KMP、B+树、IEEE754、Load-Use、CLOCK、inode、CSMA/CD、CIDR..." oninput="renderKnowledge()" />
@@ -330,7 +362,7 @@ function idbLoadIfEmpty() {
     };
   } catch (e) {}
 }
-function saveState() {
+function saveState() { setTimeout(function(){ if (typeof syncRankDebounced === "function") syncRankDebounced(); }, 0);
   try { localStorage.setItem('xmind_408_v3_curated', JSON.stringify(state)); } catch (e) {}
   idbSave(state);
   updateStats();
@@ -553,6 +585,7 @@ function resetProgress() {
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  if (tab === 'rank' && typeof refreshRankNow === 'function') refreshRankNow();
 }
 function updateStats() {
   document.getElementById('statMastered').textContent = `${Object.values(state.mastered).filter(Boolean).length} / ${SYLLABUS_MODULES.length}`;
@@ -682,14 +715,195 @@ updateStats(); renderKnowledge(); renderCrossLinks(); renderQuiz(); renderGaller
     <button class="btn btn-primary" style="width:100%;padding:11px 16px;font-size:0.95rem;font-weight:600;border-radius:11px;" onclick="closeWelcome()">关闭并开始刷题</button>
   </div>
 </div>
+<div id="profileModal" class="welcome-overlay" onclick="if(event.target===this)closeProfileModal()">
+  <div class="welcome-card" style="max-width:370px;">
+    <button class="welcome-close-x" aria-label="关闭" onclick="closeProfileModal()">✕</button>
+    <h3 style="margin:0 0 6px;font-size:1.12rem;">🏆 创建 / 修改上榜资料</h3>
+    <p style="margin:0 0 14px;font-size:0.8rem;color:var(--text-muted);">填写昵称与目标院校即可加入群友战力排行榜，答题进度会自动同步更新。</p>
+    <div class="field-grp">
+      <label for="profNickname">你的昵称 <span style="color:var(--danger);">*</span></label>
+      <input type="text" id="profNickname" maxlength="20" placeholder="例如：408冲刺选手（最多20字）" />
+    </div>
+    <div class="field-grp">
+      <label for="profSchool">目标院校（选填）</label>
+      <input type="text" id="profSchool" maxlength="24" placeholder="例如：浙江大学 / 电子科大 / 暂保密" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn" style="flex:1;" onclick="closeProfileModal()">取消</button>
+      <button class="btn btn-primary" style="flex:2;font-weight:600;" onclick="saveProfile()">保存并同步上榜</button>
+    </div>
+  </div>
+</div>
 <button id="backTopBtn" class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ 顶部</button>
 <script>
+const RANK_API = 'https://408-rank-api.zengyuwei1337.workers.dev/';
+let rankCache = [];
+let syncTimer = null;
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function ensureProfile() {
+  if (!state.profile || !state.profile.uid) {
+    state.profile = {
+      uid: 'u_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+      nickname: '',
+      school: '',
+      joined: false
+    };
+  }
+  return state.profile;
+}
+function getMyMetrics() {
+  const ansList = Object.values(state.answers || {});
+  const done = ansList.length;
+  const correct = ansList.filter(a => a && a.correct).length;
+  const mastered = Object.values(state.mastered || {}).filter(Boolean).length;
+  const accSmooth = (correct + 3) / (done + 10);
+  const factor = 0.25 + 0.75 * Math.min(1, done / 120);
+  const power = Math.round((accSmooth * 100 * factor + mastered * 1.2) * 10) / 10;
+  return { done, correct, mastered, power };
+}
+function updateProfileBtn() {
+  const p = ensureProfile();
+  const btn = document.getElementById('profileBtn');
+  if (!btn) return;
+  if (p.joined && p.nickname) {
+    btn.textContent = '👤 ' + p.nickname + (p.school ? ' · ' + p.school : '');
+  } else {
+    btn.textContent = '👤 创建用户上榜';
+  }
+  renderMyRankCard();
+}
+function openProfileModal() {
+  const p = ensureProfile();
+  document.getElementById('profNickname').value = p.nickname || '';
+  document.getElementById('profSchool').value = p.school || '';
+  document.getElementById('profileModal').classList.add('open');
+}
+function closeProfileModal() {
+  document.getElementById('profileModal').classList.remove('open');
+}
+async function saveProfile() {
+  const nick = document.getElementById('profNickname').value.trim();
+  const school = document.getElementById('profSchool').value.trim();
+  if (!nick) { alert('请先填写一个昵称~'); return; }
+  const p = ensureProfile();
+  p.nickname = nick.slice(0, 20);
+  p.school = school.slice(0, 24);
+  p.joined = true;
+  saveState();
+  updateProfileBtn();
+  closeProfileModal();
+  await syncRankNow();
+  await loadLeaderboard();
+  const m = getMyMetrics();
+  if (m.done === 0) {
+    alert('用户「' + p.nickname + '」创建成功！至少答完 1 道题后就会出现在排行榜中~');
+  }
+}
+async function syncRankNow() {
+  const p = ensureProfile();
+  if (!p.joined || !p.nickname) return false;
+  const m = getMyMetrics();
+  try {
+    const res = await fetch(RANK_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: p.uid,
+        nickname: p.nickname,
+        school: p.school || '',
+        done: m.done,
+        correct: m.correct,
+        mastered: m.mastered
+      })
+    });
+    const data = await res.json();
+    return !!(data && data.ok);
+  } catch (e) {
+    return false;
+  }
+}
+function syncRankDebounced() {
+  const p = ensureProfile();
+  if (!p.joined || !p.nickname) return;
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => { syncRankNow(); }, 900);
+}
+function fmtRelTime(iso) {
+  if (!iso) return '';
+  const diff = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (diff < 60) return '刚刚更新';
+  if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+  return Math.floor(diff / 86400) + '天前';
+}
+function renderMyRankCard() {
+  const box = document.getElementById('myRankCard');
+  if (!box) return;
+  const p = ensureProfile();
+  const m = getMyMetrics();
+  const acc = m.done ? Math.round(m.correct / m.done * 100) + '%' : '--';
+  if (!p.joined || !p.nickname) {
+    box.innerHTML = '<div><div style="font-weight:700;font-size:1rem;color:#1e3a8a;">尚未创建上榜用户</div><div style="font-size:0.82rem;color:var(--text-muted);margin-top:3px;">当前本机战力预估：<strong>' + m.power + '</strong>（已刷 ' + m.done + ' 题，正确率 ' + acc + '）</div></div><button class="btn btn-primary" onclick="openProfileModal()">✨ 创建昵称与院校上榜</button>';
+    return;
+  }
+  const idx = rankCache.findIndex(r => r.uid === p.uid);
+  const rankStr = idx >= 0 ? ('第 ' + (idx + 1) + ' 名') : (m.done > 0 ? '暂未入榜' : '待答题(>=1题入榜)');
+  box.innerHTML = '<div><div style="font-weight:700;font-size:1rem;color:#1e3a8a;">' + escHtml(p.nickname) + (p.school ? ' <span class="rank-school">🏫 ' + escHtml(p.school) + '</span>' : '') + '</div><div style="font-size:0.84rem;color:#334155;margin-top:4px;">排名：<strong>' + rankStr + '</strong> · 战力：<strong>' + m.power + '</strong> · 正确率 <strong>' + acc + '</strong> (' + m.correct + '/' + m.done + ')</div></div><button class="btn" onclick="openProfileModal()">✏️ 修改资料</button>';
+}
+async function loadLeaderboard() {
+  const statusEl = document.getElementById('rankStatusText');
+  const listEl = document.getElementById('rankListContainer');
+  if (statusEl) statusEl.textContent = '正在加载最新排行榜...';
+  try {
+    const res = await fetch(RANK_API);
+    const data = await res.json();
+    if (!data || !data.ok) throw new Error((data && data.error) || '加载失败');
+    rankCache = Array.isArray(data.list) ? data.list : [];
+    renderMyRankCard();
+    if (statusEl) statusEl.textContent = '共 ' + rankCache.length + ' 位考生上榜 · 实时同步';
+    const myUid = ensureProfile().uid;
+    listEl.innerHTML = rankCache.length ? rankCache.map((r, i) => {
+      const pos = i + 1;
+      const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : String(pos);
+      const posCls = pos <= 3 ? ('top' + pos) : '';
+      const acc = r.done ? Math.round(r.correct / r.done * 100) : 0;
+      const isMe = r.uid === myUid;
+      return '<div class="rank-item ' + (isMe ? 'me' : '') + '">' +
+        '<div class="rank-left">' +
+          '<div class="rank-pos ' + posCls + '">' + medal + '</div>' +
+          '<div class="rank-meta">' +
+            '<div class="rank-name">' + escHtml(r.nickname) + (isMe ? ' <span class="badge badge-ds" style="margin-left:4px;">我</span>' : '') + '</div>' +
+            '<div>' + (r.school ? '<span class="rank-school">🏫 ' + escHtml(r.school) + '</span>' : '<span style="font-size:0.74rem;color:var(--text-muted);">目标院校未填</span>') +
+            '<span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">' + fmtRelTime(r.updated_at) + '</span></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rank-right">' +
+          '<div class="rank-power">' + Number(r.power).toFixed(1) + ' <span style="font-size:0.72rem;font-weight:500;">分</span></div>' +
+          '<div class="rank-sub">正确率 ' + acc + '% (' + r.correct + '/' + r.done + ') · 模块 ' + r.mastered + '/36</div>' +
+        '</div>' +
+      '</div>';
+    }).join('') : '<div class="card" style="text-align:center;color:var(--text-muted);">榜单暂时还是空的，成为第一位刷题上榜的同学吧！</div>';
+  } catch (e) {
+    if (statusEl) statusEl.textContent = '排行榜加载失败（请检查网络）';
+    listEl.innerHTML = '<div class="card" style="text-align:center;color:var(--text-muted);">暂无法连接排行榜服务，本地刷题不受影响，可点击右上角刷新重试。</div>';
+  }
+}
+async function refreshRankNow() {
+  const p = ensureProfile();
+  if (p.joined && p.nickname) await syncRankNow();
+  await loadLeaderboard();
+}
+
 function closeWelcome() { var w = document.getElementById('welcomeModal'); if (w) w.classList.remove('open'); }
 if (/MicroMessenger/i.test(navigator.userAgent || '')) { document.getElementById('wxBanner').classList.add('show'); }
 window.addEventListener('scroll', function() {
   var b = document.getElementById('backTopBtn');
   if (b) b.classList.toggle('show', window.scrollY > 360);
 });
+updateProfileBtn();
 </script>
 </body>
 </html>
