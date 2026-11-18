@@ -673,7 +673,7 @@ function exportWrongWord() { if (isWeChatBrowser()) { alert("微信内置浏览�
 function resetProgress() {
   if (!confirm('确定清空所有记录和错题本吗？')) return;
   state.mastered = {}; state.answers = {}; state.wrongBook = {}; state.notes = {};
-  saveState(); renderKnowledge(); renderQuiz();
+  saveState(); renderKnowledge(); renderQuiz(); if (typeof renderMyRankCard === 'function') renderMyRankCard();
 }
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
@@ -735,7 +735,7 @@ function setQuizFilter(v, el) { randomModeIds = null; document.getElementById('e
 function startRandomN(n) { const p = [...QUIZ_DATA]; for (let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];} randomModeIds = new Set(p.slice(0,n||20).map(x=>x.id)); document.getElementById('exitRandomBtn').style.display='inline-block'; qPage=1; renderQuiz(); }
 function startRandom20() { startRandomN(20); }
 function exitRandom20() { randomModeIds = null; document.getElementById('exitRandomBtn').style.display = 'none'; renderQuiz(); }
-function answerMC(id, idx) { const q = QUIZ_DATA.find(x => x.id === id); const ok = idx === q.answer; state.answers[id] = { selected: idx, correct: ok }; if (!ok) state.wrongBook[id] = true; saveState(); renderQuiz(); }
+function answerMC(id, idx) { if (state.answers[id]) return; const q = QUIZ_DATA.find(x => x.id === id); if (!q) return; const ok = idx === q.answer; state.answers[id] = { selected: idx, correct: ok }; if (!ok) state.wrongBook[id] = true; saveState(); renderQuiz(); }
 function selfCheckImg(id, ok) { state.answers[id] = { selected: ok ? 1 : 0, correct: ok }; if (!ok) state.wrongBook[id] = true; else delete state.wrongBook[id]; saveState(); renderQuiz(); }
 function toggleWrongBook(id) { if (state.wrongBook[id]) delete state.wrongBook[id]; else state.wrongBook[id] = true; saveState(); renderQuiz(); }
 function saveNote(id, v) { if (v.trim()) state.notes[id] = v; else delete state.notes[id]; saveState(); }
@@ -782,7 +782,7 @@ function renderQuiz() {
       bodyHtml = '<div class="options">' + q.options.map((opt, idx) => {
         let cls = '';
         if (ans) { if (idx === q.answer) cls = 'correct'; else if (idx === ans.selected && !ans.correct) cls = 'wrong'; }
-        return `<button class="opt-btn ${cls}" onclick="answerMC(${q.id}, ${idx})"><span class="opt-key">${keys[idx]}.</span><span>${opt}</span></button>`;
+        return `<button class="opt-btn ${cls}" style="${ans ? 'cursor:default;' : ''}" onclick="answerMC(${q.id}, ${idx})"><span class="opt-key">${keys[idx]}.</span><span>${opt}</span></button>`;
       }).join('') + '</div>';
     }
     const expHtml = (ans || inW) ? `<div class="explain-box ${ans && ans.correct ? 'ok' : 'bad'}">${q.isZhentiImg ? '' : `<strong>${ans ? (ans.correct ? '回答正确！' : `回答有误，正确答案：${keys[q.answer]}`) : `错题本复习（正确答案：${keys[q.answer]}）`}</strong>`}<div style="margin-top:4px;"><strong>${q.isZhentiImg ? '提示' : '解析'}：</strong>${q.explain}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center;"><span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">错因笔记：</span><input type="text" value="${noteVal}" placeholder="输入答案、错因或速记口诀（自动保存）..." oninput="saveNote(${q.id}, this.value)" style="flex:1;padding:5px 10px;font-size:0.82rem;" /></div></div>` : '';
