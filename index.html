@@ -675,9 +675,16 @@ function resetProgress() {
   state.mastered = {}; state.answers = {}; state.wrongBook = {}; state.notes = {};
   saveState(); renderKnowledge(); renderQuiz(); if (typeof renderMyRankCard === 'function') renderMyRankCard();
 }
+const _renderedTabs = { quiz: true };
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  if (!_renderedTabs[tab]) {
+    _renderedTabs[tab] = true;
+    if (tab === 'knowledge') renderKnowledge();
+    if (tab === 'cross') renderCrossLinks();
+    if (tab === 'tools') renderGallery();
+  }
   if (tab === 'rank' && typeof refreshRankNow === 'function') refreshRankNow();
 }
 function updateStats() {
@@ -707,7 +714,7 @@ function renderKnowledge() {
       <ul class="kp-list">${m.points.map(p => `<li>${highlightText(p, kw)}</li>`).join('')}</ul>
       <div class="formula-box">${highlightText(m.formula.replace(/\n/g, '<br/>'), kw)}</div>
       <div class="pitfall-box">易错提示：${highlightText(m.pitfall, kw)}</div>
-      ${m.imgs && m.imgs.length ? `<div class="thumb-row">${m.imgs.map(f => `<img loading="lazy" class="thumb-img" src="./xmind_assets/${f}" onclick="openModal('./xmind_assets/${f}', '${m.title}')" />`).join('')}</div>` : ''}
+      ${m.imgs && m.imgs.length ? `<div class="thumb-row">${m.imgs.map(f => `<img loading="lazy" decoding="async" class="thumb-img" src="./xmind_assets/${f}" onclick="openModal('./xmind_assets/${f}', '${m.title}')" />`).join('')}</div>` : ''}
     </div>
   `).join('') : '<div class="card" style="grid-column:1/-1;text-align:center;color:var(--text-muted);">未检索到相关知识点</div>';
 }
@@ -726,7 +733,7 @@ function renderCrossLinks() {
       <div class="svg-wrap">${getCrossSvg(c.svgType)}</div>
       <ol class="kp-list">${c.steps.map(s => `<li>${s}</li>`).join('')}</ol>
       <table class="cmp-table"><thead><tr>${c.compareTable.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${c.compareTable.rows.map(r => `<tr>${r.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table>
-      <div class="thumb-row" style="margin-top:14px;">${c.imgs.map(img => `<div style="text-align:center;"><img class="thumb-img" style="height:84px;" src="./xmind_assets/${img.file}" onclick="openModal('./xmind_assets/${img.file}', '${img.caption}')" /><div style="font-size:0.74rem;color:var(--text-muted);max-width:140px;">${img.caption}</div></div>`).join('')}</div>
+      <div class="thumb-row" style="margin-top:14px;">${c.imgs.map(img => `<div style="text-align:center;"><img loading="lazy" decoding="async" class="thumb-img" style="height:84px;" src="./xmind_assets/${img.file}" onclick="openModal('./xmind_assets/${img.file}', '${img.caption}')" /><div style="font-size:0.74rem;color:var(--text-muted);max-width:140px;">${img.caption}</div></div>`).join('')}</div>
     </div>
   `).join('');
 }
@@ -771,7 +778,7 @@ function renderQuiz() {
     const wrongBtn = `<button class="mastered-toggle ${inW?'done':''}" style="${inW?'background:var(--danger-soft);color:var(--danger);border-color:var(--danger);':''}" onclick="toggleWrongBook(${q.id})">${inW?'移出错题本':'+ 加入错题本'}</button>`;
     const codeHtml = q.code ? `<pre class="q-code">${q.code.replace(/</g,'&lt;')}</pre>` : '';
     const imgStyle = (q.isZhentiImg || q.isXmindZhenti || q.isPdfZhenti) ? 'max-width:100%;max-height:420px;border-radius:8px;border:1px solid var(--border);cursor:zoom-in;background:#fff;' : '';
-    const diagHtml = q.diagram ? `<div class="q-diagram">${q.diagram}</div>` : (q.xmindImg ? `<div class="q-diagram"><img loading="lazy" class="${(q.isZhentiImg||q.isXmindZhenti||q.isPdfZhenti)?'':'q-xmind-img'}" style="${imgStyle}" src="${q.xmindImg}" onclick="openModal('${q.xmindImg}', '${q.module}')" /><div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">点击图片可放大查看</div></div>` : '');
+    const diagHtml = q.diagram ? `<div class="q-diagram">${q.diagram}</div>` : (q.xmindImg ? `<div class="q-diagram"><img loading="lazy" decoding="async" class="${(q.isZhentiImg||q.isXmindZhenti||q.isPdfZhenti)?'':'q-xmind-img'}" style="${imgStyle}" src="${q.xmindImg}" onclick="openModal('${q.xmindImg}', '${q.module}')" /><div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">点击图片可放大查看</div></div>` : '');
     let bodyHtml = '';
     if (q.isZhentiImg) {
       bodyHtml = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
@@ -793,9 +800,9 @@ function renderQuiz() {
 function calcRelAddr() { const pc=parseInt(document.getElementById('c1_pc').value.trim(),16), len=parseInt(document.getElementById('c1_len').value,10)||4, off=parseInt(document.getElementById('c1_off').value,10)||0, mode=document.getElementById('c1_mode').value; if(isNaN(pc))return; const pcNext=pc+len, b=mode==='inst'?off*len:off, t=(pcNext+b)>>>0; document.getElementById('c1_out').innerHTML=`PC+"1"=0x${pcNext.toString(16).toUpperCase().padStart(8,'0')}<br><strong>目标=0x${t.toString(16).toUpperCase().padStart(8,'0')}</strong>`; }
 function calcInode() { const blk=parseInt(document.getElementById('c2_blk').value,10)||4, ptr=parseInt(document.getElementById('c2_ptr').value,10)||4, d=parseInt(document.getElementById('c2_d').value,10)||0, i1=parseInt(document.getElementById('c2_i1').value,10)||0, i2=parseInt(document.getElementById('c2_i2').value,10)||0, n=Math.floor(blk*1024/ptr), tot=d*blk+i1*n*blk+i2*n*n*blk; document.getElementById('c2_out').innerHTML=`N=${n} | <strong>总≈${(tot/1048576).toFixed(4)} GB</strong>`; }
 function calcBuffer() { const T=parseFloat(document.getElementById('c3_t').value)||0, M=parseFloat(document.getElementById('c3_m').value)||0, C=parseFloat(document.getElementById('c3_c').value)||0, N=parseInt(document.getElementById('c3_n').value,10)||1; let bf=0,cf=0,se=0; for(let k=0;k<N;k++){const tr=Math.max(bf+T,cf)+M;bf=tr;cf=tr+C;se=cf;} let ba=[0,0],cr=0,dr=0,de=0; for(let k=0;k<N;k++){const bi=k%2,ei=Math.max(dr,ba[bi])+T;dr=ei;const et=Math.max(ei,cr)+M;ba[bi]=et;cr=et+C;de=cr;} document.getElementById('c3_out').innerHTML=`单缓冲共 <strong>${se}μs</strong> | 双缓冲共 <strong>${de}μs</strong>`; }
-function renderGallery() { const kw=document.getElementById('galSearch').value.trim().toLowerCase(); const list=XMIND_GALLERY.filter(g=>!kw||(g.cat+' '+g.title).toLowerCase().includes(kw)); document.getElementById('galleryContainer').innerHTML=list.map(g=>`<div class="gallery-item" onclick="openModal('./xmind_assets/${g.file}','[${g.cat}] ${g.title}')"><img src="./xmind_assets/${g.file}" loading="lazy"/><div style="font-size:0.8rem;margin-top:6px;"><span style="color:var(--primary);font-size:0.73rem;">${g.cat}</span><br/>${g.title}</div></div>`).join(''); }
+function renderGallery() { const kw=document.getElementById('galSearch').value.trim().toLowerCase(); const list=XMIND_GALLERY.filter(g=>!kw||(g.cat+' '+g.title).toLowerCase().includes(kw)); document.getElementById('galleryContainer').innerHTML=list.map(g=>`<div class="gallery-item" onclick="openModal('./xmind_assets/${g.file}','[${g.cat}] ${g.title}')"><img src="./xmind_assets/${g.file}" loading="lazy" decoding="async"/><div style="font-size:0.8rem;margin-top:6px;"><span style="color:var(--primary);font-size:0.73rem;">${g.cat}</span><br/>${g.title}</div></div>`).join(''); }
 
-updateStats(); renderKnowledge(); renderCrossLinks(); renderQuiz(); renderGallery(); idbLoadIfEmpty();
+updateStats(); renderQuiz(); idbLoadIfEmpty();
 </script>
 <div id="welcomeModal" class="welcome-overlay open" onclick="if(event.target===this)closeWelcome()">
   <div class="welcome-card">
